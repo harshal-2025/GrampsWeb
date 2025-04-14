@@ -1,32 +1,44 @@
-# docker-compose file for frontend development
-# do not use in production!
-# https://www.grampsweb.org/dev-frontend/setup/
-
 version: "3.8"
 
 services:
   gramps-proxy:
     image: nginx
-    container_name: gramps-proxy-dev
+    container_name: gramps-proxy
     volumes:
-      - ./dev/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx.conf:/etc/nginx/nginx.conf
     ports:
-      - "5555:80"
+      - "${PORT:-80}:80" # Dynamic port allocation for production
+    environment:
+      - NGINX_LOG_LEVEL=info # Example environment variable for better logging
+
   gramps-api:
-    container_name: gramps-api-dev
+    container_name: gramps-api
     build:
-      context: ./dev
+      context: ./api
       dockerfile: Dockerfile.api
+    environment:
+      - SECRET_KEY=${SECRET_KEY} # Securely manage secret keys for production
+      - DB_HOST=${DB_HOST}       # Example for database connection
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+
   gramps-frontend:
-    container_name: gramps-frontend-dev
+    container_name: gramps-frontend
     build:
-      context: .
-      dockerfile: ./dev/Dockerfile.frontend
+      context: ./frontend
+      dockerfile: Dockerfile.frontend
     volumes:
-      - ./:/app
-      - node_modules:/app/node_modules
+      - ./frontend:/app
+      - ./node_modules:/app/node_modules # Ensuring local dependencies are linked
+    environment:
+      - FRONTEND_ENV=production # Frontend production environment variable
 
 volumes:
   gramps_users:
+    driver: local # Persistent storage for user data
   gramps_db:
+    driver: local # Persistent storage for database
   node_modules:
+    driver: local # Ensure `node_modules` are consistently accessible
